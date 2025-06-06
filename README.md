@@ -61,6 +61,8 @@ Nosso chat utiliza inteligência artificial para responder aos usuários pergunt
 * Quem é Harry Potter?
 * Como é voar em uma vassoura?
 * Você conhece o Dumbledore?
-* Me diga um feitiço para abrir portas!
+* Há um feitiço para abrir portas?
+
+Todas as perguntas devem possuir "?" no final para que a IA seja ativada.
 
 A IA responderá de forma criativa e contextual, de acordo com arquivo contendo informações base (harryPotter.txt). ✨
