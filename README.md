@@ -22,7 +22,7 @@ Nosso chat utiliza inteligência artificial para responder aos usuários pergunt
    ```bash
    git clone https://github.com/seu-usuario/chat-harry-potter.git
    cd chat-harry-potter
-````
+   ````
 
 2. Crie um ambiente virtual e ative:
 
