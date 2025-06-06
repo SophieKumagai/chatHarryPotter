@@ -3,6 +3,8 @@ from datetime import datetime
 from app import socketio
 import os
 from app.gemini.modelo import responder_pergunta
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.schema import HumanMessage, SystemMessage
 
 bp = Blueprint("chat", __name__)
 
@@ -29,10 +31,19 @@ def carregar_historico():
                     cor = "red"
                 elif "[ATENDENTE]" in linha:
                     cor = "blue"
+                elif "[GEMINI]" in linha:
+                    cor = "purple"
                 else:
                     cor = "black"
                 linhas_coloridas.append(f'<font color="{cor}">{linha.strip()}</font>')
     return linhas_coloridas
+
+def avaliar_resposta(pergunta, resposta_tutor, prompt_juiz, juiz):
+    mensagens = [
+        SystemMessage(content=prompt_juiz),
+        HumanMessage(content=f"Pergunta do aluno: {pergunta}\n\nResposta do tutor: {resposta_tutor}")
+    ]
+    return str(juiz.invoke(mensagens).content)
 
 @bp.route("/")
 def home():
@@ -53,10 +64,33 @@ def usuario():
             if msg.strip().endswith("?"):
                 resposta = responder_pergunta(msg)
 
-                # seu código de juízes de IA aqui 
+                # juiz
+                juiz = ChatGoogleGenerativeAI(
+                    model="gemini-2.0-flash",
+                    temperature=0.3,
+                    google_api_key=os.getenv("GEMINI_API_KEY")
+                )
 
-                # após verificar se ocorreu alucinação, gravar a resposta no log da sessão
-                registrar_log("GEMINI", resposta, session["chat_id"])
+                prompt_juiz = '''
+                Você é um avaliador imparcial. Sua tarefa é revisar a resposta de um tutor de IA para uma pergunta de um trouxa de Harry Potter.
+
+                Critérios:
+                - A resposta está correta de acordo com os livros de Harry Potter?
+                - A resposta está clara?
+                - A resposta tem sentido?
+
+                Se a resposta for boa, diga “✅ Aprovado” e explique por quê.
+                Se tiver problemas, diga “⚠️ Reprovado” e proponha uma versão melhorada.
+                '''
+
+                avaliacao = avaliar_resposta(msg, resposta, prompt_juiz, juiz)
+
+                if "Aprovado" in avaliacao:
+                    # após verificar se ocorreu alucinação, gravar a resposta no log da sessão
+                    registrar_log("GEMINI", resposta, session["chat_id"])
+                else:
+                    registrar_log("GEMINI", resposta, session["chat_id"])
+                    registrar_log("GEMINI - JUIZ", avaliacao, session["chat_id"])
         elif "encerrar" in request.form:
             registrar_log("SISTEMA", f"=== Fim da Sessão {session['chat_id']} ===", session["chat_id"])
             session.pop("chat_id", None)
